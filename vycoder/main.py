@@ -1,7 +1,7 @@
 import argparse
 
 from . import coder
-from .predictions import pair_frequency2
+from .predictions import weighted_positions
 from .codepage import codepage
 
 
@@ -11,7 +11,7 @@ def vyxal_to_int(s):
 def int_to_vyxal(lst):
     return "".join(codepage[x] for x in lst)
 
-pred = pair_frequency2(16, 128)
+pred = weighted_positions(lambda d: 0.5**d, 32, 128)
 
 def encode():
     parser = argparse.ArgumentParser(description='Encodes Vyxal code as a bit string.')

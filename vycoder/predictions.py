@@ -1,18 +1,25 @@
 import csv
 from . import config
 
-frequencies = [0 for _ in range(256)]
-pairs = [[0 for _ in range(256)] for __ in range(257)]
-
 data_path = "vycoder/TrainingData.csv" if config.training else "vycoder/Data.csv"
+
+frequencies = [0]*256
+
+max_distance = 8
+positions = [[[0]*256 for _ in range(257)] for _ in range(max_distance)]  # dimensions [max_distance, 257, 256]
 
 with open(data_path, newline="") as f:
     for row in csv.reader(f):
-        y = 256
-        for x in row:
-            frequencies[int(x)] += 1
-            pairs[y][int(x)] += 1
-            y = int(x)
+        row = [int(x) for x in row]
+        for i in range(len(row)):
+            frequencies[row[i]] += 1
+            for j in range(max_distance):
+                if i-j-1 >= 0:
+                    positions[j][row[i-j-1]][row[i]] += 1
+                else:
+                    positions[j][256][row[i]] += 1
+
+pairs = positions[0]
 
 
 def uniform(x):
@@ -48,4 +55,17 @@ def pair_frequency2(alpha, beta):
         else:
             x = 256
         return lookup[x]
+    return f
+
+
+def weighted_positions(distance_weight, alpha, beta):
+    def f(lst):
+        out = [0]*256
+        for i in reversed(range(max_distance)):
+            if i < len(lst):
+                out = [distance_weight(i)*x + y for x, y in zip(positions[i][lst[-i-1]], out)]
+            elif i == 0:
+                out = [distance_weight(i)*x + y for x, y in zip(positions[i][256], out)]
+        out = [x*(sum(frequencies)+256*alpha) + beta*(y + alpha) for x, y in zip(out, frequencies)]
+        return out
     return f
