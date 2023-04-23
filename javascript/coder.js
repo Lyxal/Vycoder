@@ -69,3 +69,41 @@ export function encode(
 
     return out;
 }
+
+export function decode(inp, prediction, min_bits = 16) {
+    const out = [];
+    let bottom = 0;
+    let top = 0;
+    let bits = 0;
+    let acc = 0;
+    let i = 0;
+    let consumed = 0;
+
+    while (top - bottom + 1 > 2 ** (i - inp.length + 1)) {
+        const bits_to_add = Math.max(min_bits - (top + 1 - bottom).toString(2).length + 1, 0);
+        bottom *= 2 ** bits_to_add;
+        top = (top + 1) * 2 ** bits_to_add - 1;
+        const l = Math.max(Math.min(inp.length - i, bits_to_add), 0);
+        acc = acc * 2 ** l + from_bin(inp.slice(i, i + l));
+        acc *= 2 ** (bits_to_add - l);
+        i += bits_to_add;
+        bits += bits_to_add;
+        const ranges = prediction(out).reduce((acc, x) => {
+            acc.push((acc[acc.length - 1] || bottom) + Math.floor(x * (top + 1 - bottom) / acc[acc.length - 1]));
+            return acc;
+        }, []);
+        const x = ranges.findIndex((range) => range > acc);
+        out.push(x);
+        ranges.unshift(bottom);
+        bottom = ranges[x];
+        top = ranges[x + 1] - 1;
+        const different_bits = (top ^ bottom).toString(2).length;
+        consumed += bits - different_bits;
+        bits = different_bits;
+        bottom &= 2 ** bits - 1;
+        top &= 2 ** bits - 1;
+        acc &= 2 ** bits - 1;
+    }
+
+    return out;
+}
