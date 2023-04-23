@@ -70,40 +70,52 @@ export function encode(
     return out;
 }
 
-export function decode(inp, prediction, min_bits = 16) {
-    const out = [];
-    let bottom = 0;
-    let top = 0;
-    let bits = 0;
-    let acc = 0;
-    let i = 0;
-    let consumed = 0;
+export function decode(inp, prediction, minBits = 16n) {
+  let out = [];
 
-    while (top - bottom + 1 > 2 ** (i - inp.length + 1)) {
-        const bits_to_add = Math.max(min_bits - (top + 1 - bottom).toString(2).length + 1, 0);
-        bottom *= 2 ** bits_to_add;
-        top = (top + 1) * 2 ** bits_to_add - 1;
-        const l = Math.max(Math.min(inp.length - i, bits_to_add), 0);
-        acc = acc * 2 ** l + from_bin(inp.slice(i, i + l));
-        acc *= 2 ** (bits_to_add - l);
-        i += bits_to_add;
-        bits += bits_to_add;
-        const ranges = prediction(out).reduce((acc, x) => {
-            acc.push((acc[acc.length - 1] || bottom) + Math.floor(x * (top + 1 - bottom) / acc[acc.length - 1]));
-            return acc;
-        }, []);
-        const x = ranges.findIndex((range) => range > acc);
-        out.push(x);
-        ranges.unshift(bottom);
-        bottom = ranges[x];
-        top = ranges[x + 1] - 1;
-        const different_bits = (top ^ bottom).toString(2).length;
-        consumed += bits - different_bits;
-        bits = different_bits;
-        bottom &= 2 ** bits - 1;
-        top &= 2 ** bits - 1;
-        acc &= 2 ** bits - 1;
-    }
+  // inclusive range [bottom, top]
+  let bottom = 0n;
+  let top = 0n;
 
-    return out;
+  let bits = 0n;
+  let acc = 0n;
+  let i = 0;
+  let consumed = 0n;
+
+  while (top - bottom + 1n > 2n ** (BigInt(i) - BigInt(inp.length) + 1n)) {
+    let bitsToAdd = max(minBits - BigInt(top + 1n - bottom).toString(2).length + 1n, 0n);
+
+    bottom *= 2n ** bitsToAdd;
+    top = (top + 1n) * (2n ** bitsToAdd) - 1n;
+    let l = max(BigInt(min(inp.length - i, bitsToAdd)), 0n);
+    acc = acc * (2n ** l) + BigInt(fromBin(inp.slice(i, i + Number(l))));
+    acc *= 2n ** (bitsToAdd - l);
+    i += Number(bitsToAdd);
+
+    bits += bitsToAdd;
+
+    let ranges = [...prediction(out)].reduce((acc, x) => {
+      let last = acc[acc.length - 1] || bottom;
+      acc.push(BigInt(x) * (top + 1n - bottom) / prediction(out)[prediction(out).length - 1] + bottom);
+      return acc;
+    }, []);
+
+    let x = ranges.findIndex((r, j) => r > acc);
+    out.push(x);
+
+    ranges.unshift(bottom);
+
+    bottom = ranges[x];
+    top = ranges[x + 1n] - 1n;
+
+    let differentBits = BigInt(top ^ bottom).toString(2).length;
+    consumed += bits - differentBits;
+
+    bits = differentBits;
+    bottom &= 2n ** bits - 1n;
+    top &= 2n ** bits - 1n;
+    acc &= 2n ** bits - 1n;
+  }
+
+  return out;
 }
