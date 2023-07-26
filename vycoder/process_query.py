@@ -4,7 +4,7 @@ from codepage import codepage
 
 programs = []
 
-with open("vycoder/QueryResults.csv", newline="", encoding="utf-8") as f:
+with open("QueryResults.csv", newline="", encoding="utf-8") as f:
     for row in csv.reader(f):
         if row[0] == "Post Link":
             continue
@@ -13,11 +13,7 @@ with open("vycoder/QueryResults.csv", newline="", encoding="utf-8") as f:
             continue
 
         # Extract the first bit of code
-        vyxal = (
-            code.partition("<pre><code>")[2]
-            .partition("</code></pre>")[0]
-            .strip()
-        )
+        vyxal = code.partition("<pre><code>")[2].partition("</code></pre>")[0].strip()
         vyxal = vyxal.replace("&quot;", '"')
         vyxal = vyxal.replace("&gt;", ">").replace("&lt;", "<")
         vyxal = vyxal.replace("&amp;", "&")
@@ -30,7 +26,9 @@ with open("vycoder/QueryResults.csv", newline="", encoding="utf-8") as f:
             continue
         programs.append(vyxal)
 
-with open("vycoder/Data.csv", "w", newline="") as f:
+with open("programs.txt", "w", encoding="utf-8") as f:
+    f.write("\n".join(programs))
+with open("Data.csv", "w", newline="") as f:
     writer = csv.writer(f)
     for vyxal in programs:
         writer.writerow([codepage.index(c) for c in vyxal])
